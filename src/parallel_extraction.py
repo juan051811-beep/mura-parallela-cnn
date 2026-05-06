@@ -5,6 +5,7 @@ Extraccion paralela de caracteristicas, la carga de rutas y etiquetas se toma de
 import time
 import multiprocessing
 import numpy as np
+import pandas as pd
 from PIL import Image
 
 from data_loader import cargar_rutas
@@ -70,14 +71,21 @@ def extraccion_paralela(dataset_path, n_procesos):
 
     return resultados, tiempo_total
 
+def guardar_resultados(resultados, ruta_salida):
+    #guardamos las caracteristicas extraidas en un archivo CSV.
+    df = pd.DataFrame(resultados)
+    df.to_csv(ruta_salida, index=False)
 
 if __name__ == "__main__":
     dataset_path = "data/MURA-v1.1"
     n_procesos = 4
+    ruta_salida = "data/features_parallel.csv"
 
     resultados, tiempo = extraccion_paralela(dataset_path, n_procesos)
+    guardar_resultados(resultados, ruta_salida)
 
     print("Extraccion paralela de caracteristicas")
     print("Procesos utilizados:", n_procesos)
     print("Caracteristicas extraidas:", len(resultados))
     print("Tiempo total:", tiempo, "segundos")
+    print("Archivo guardado en:", ruta_salida)
