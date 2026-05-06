@@ -4,10 +4,37 @@ Extraccion paralela de caracteristicas, la carga de rutas y etiquetas se toma de
 
 import time
 import multiprocessing
+import numpy as np
+from PIL import Image
 
 from data_loader import cargar_rutas
 from chunks import dividir_chunks
 
+def extraer_caracteristicas_imagen(ruta_imagen, etiqueta):
+    #Se extrae caracteristicas basicas de una imagen.
+    try:
+        imagen = Image.open(ruta_imagen).convert("L")
+        arreglo = np.array(imagen)
+
+        caracteristicas = {
+            "ruta": ruta_imagen,
+            "etiqueta": etiqueta,
+            "alto": arreglo.shape[0],
+            "ancho": arreglo.shape[1],
+            "promedio": float(np.mean(arreglo)),
+            "desviacion": float(np.std(arreglo)),
+            "minimo": int(np.min(arreglo)),
+            "maximo": int(np.max(arreglo))
+        }
+
+        return caracteristicas
+
+    except Exception as error:
+        return {
+            "ruta": ruta_imagen,
+            "etiqueta": etiqueta,
+            "error": str(error)
+        }
 
 def procesar_chunk(chunk):
     """
