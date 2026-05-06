@@ -1,0 +1,6 @@
+Tiempo secuencial: 3160.9309 segundos
+Total imágenes originales: 40009
+Imágenes válidas procesadas: 40005
+Imágenes inválidas omitidas: 4
+Shape features: (40005, 1280)
+Shape labels: (40005,)
