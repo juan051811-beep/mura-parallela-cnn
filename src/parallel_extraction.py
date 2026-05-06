@@ -52,19 +52,23 @@ def procesar_chunk(chunk):
     return resultados
 
 def extraccion_paralela(dataset_path, n_procesos):
-    """
-    se ejecuta la extraccion de caracteristicas.
-    """
     rutas, etiquetas = cargar_rutas(dataset_path)
     chunks = dividir_chunks(rutas, etiquetas, n_procesos)
 
     inicio = time.time()
 
+    with multiprocessing.Pool(processes=n_procesos) as pool:
+        resultados_por_chunk = pool.map(procesar_chunk, chunks)
 
     fin = time.time()
     tiempo_total = fin - inicio
 
-    return [], tiempo_total
+    resultados = []
+
+    for resultado_chunk in resultados_por_chunk:
+        resultados.extend(resultado_chunk)
+
+    return resultados, tiempo_total
 
 
 if __name__ == "__main__":
