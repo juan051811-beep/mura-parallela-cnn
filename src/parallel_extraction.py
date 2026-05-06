@@ -38,12 +38,18 @@ def extraer_caracteristicas_imagen(ruta_imagen, etiqueta):
 
 def procesar_chunk(chunk):
     """
-    en esta función se procesa un bloque de imagenes, cada chunk contiene una lista de rutas y una lista de etiquetas, más adelante aqui se agregara la extraccion de caracteristicas.
+    con esta función procesamos un bloque de imagenes, cada proceso ejecutara esta funcion con un chunk diferente.
     """
     resultados = []
 
-    return resultados
+    rutas = chunk["rutas"]
+    etiquetas = chunk["etiquetas"]
 
+    for ruta, etiqueta in zip(rutas, etiquetas):
+        caracteristicas = extraer_caracteristicas_imagen(ruta, etiqueta)
+        resultados.append(caracteristicas)
+
+    return resultados
 
 def extraccion_paralela(dataset_path, n_procesos):
     """
