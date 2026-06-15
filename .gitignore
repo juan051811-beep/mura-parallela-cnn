@@ -10,3 +10,7 @@ data/
 
 # archivos pesados
 *.npy
+# resultados generados por grid search
+grid_search_results_*.csv
+time_grid_search_*.txt
+best_model_info_*.json
