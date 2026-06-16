@@ -5,77 +5,69 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    classification_report,
-    confusion_matrix,
-    ConfusionMatrixDisplay
+    accuracy_score, precision_score, recall_score, f1_score,
+    classification_report, confusion_matrix, ConfusionMatrixDisplay
 )
 
 
-# Cargar features y labels generados previamente
 def cargar_datos():
     X = np.load("features_sequential.npy")
     y = np.load("labels_sequential.npy")
 
     return train_test_split(
-        X,
-        y,
+        X, y,
         test_size=0.20,
         random_state=42,
         stratify=y
     )
 
 
-# Entrenar y evaluar el SVM ganador del Grid Search
-def entrenar_evaluar(args):
-    X_train, X_test, y_train, y_test = args
+# Entrena un modelo de Regresión Logística sobre un chunk del dataset
+def entrenar_modelo_chunk(args):
+    X_chunk, y_chunk = args
 
-    modelo = SVC(
-        C=10,
-        gamma="scale",
-        kernel="rbf"
+    modelo = LogisticRegression(
+        C=0.1,
+        solver="lbfgs",
+        max_iter=1000
     )
 
-    inicio = time.time()
-    modelo.fit(X_train, y_train)
-    y_pred = modelo.predict(X_test)
-    fin = time.time()
-
-    return {
-        "tiempo": fin - inicio,
-        "accuracy": accuracy_score(y_test, y_pred),
-        "precision": precision_score(y_test, y_pred),
-        "recall": recall_score(y_test, y_pred),
-        "f1_score": f1_score(y_test, y_pred),
-        "classification_report": classification_report(y_test, y_pred),
-        "confusion_matrix": confusion_matrix(y_test, y_pred)
-    }
+    modelo.fit(X_chunk, y_chunk)
+    return modelo
 
 
-# Ejecutar experimento usando multiprocessing.Pool
+# Combina las predicciones de todos los modelos por promedio de probabilidades
+def predecir_ensemble(modelos, X_test):
+    probabilidades = []
+
+    for modelo in modelos:
+        probabilidades.append(modelo.predict_proba(X_test))
+
+    promedio = np.mean(probabilidades, axis=0)
+    return np.argmax(promedio, axis=1)
+
+
 def ejecutar_experimento(n_procesos, X_train, X_test, y_train, y_test):
-    tareas = [
-        (X_train, X_test, y_train, y_test)
-        for _ in range(n_procesos)
-    ]
+    # Siempre se usan 8 chunks para que todos los experimentos tengan el mismo trabajo
+    X_chunks = np.array_split(X_train, 8)
+    y_chunks = np.array_split(y_train, 8)
 
-    inicio_total = time.time()
+    tareas = list(zip(X_chunks, y_chunks))
+
+    inicio = time.time()
 
     if n_procesos == 1:
-        resultados = [entrenar_evaluar(tareas[0])]
+        modelos = [entrenar_modelo_chunk(tarea) for tarea in tareas]
     else:
         with multiprocessing.Pool(processes=n_procesos) as pool:
-            resultados = pool.map(entrenar_evaluar, tareas)
+            modelos = pool.map(entrenar_modelo_chunk, tareas)
 
-    fin_total = time.time()
+    y_pred = predecir_ensemble(modelos, X_test)
 
-    resultado = resultados[0]
-    tiempo_total = fin_total - inicio_total
+    fin = time.time()
+    tiempo_total = fin - inicio
 
     if n_procesos == 1:
         archivo_tiempo = "time_training_sequential.txt"
@@ -85,17 +77,17 @@ def ejecutar_experimento(n_procesos, X_train, X_test, y_train, y_test):
     with open(archivo_tiempo, "w", encoding="utf-8") as f:
         f.write(f"Procesos utilizados: {n_procesos}\n")
         f.write(f"Tiempo total: {tiempo_total:.4f} segundos\n")
-        f.write("Paralelismo experimental con multiprocessing.Pool\n")
+        f.write("Modelo: Regresión Logística en ensemble por chunks\n")
 
     return {
         "procesos": n_procesos,
         "tiempo_total": tiempo_total,
-        "accuracy": resultado["accuracy"],
-        "precision": resultado["precision"],
-        "recall": resultado["recall"],
-        "f1_score": resultado["f1_score"],
-        "classification_report": resultado["classification_report"],
-        "confusion_matrix": resultado["confusion_matrix"]
+        "accuracy": accuracy_score(y_test, y_pred),
+        "precision": precision_score(y_test, y_pred),
+        "recall": recall_score(y_test, y_pred),
+        "f1_score": f1_score(y_test, y_pred),
+        "classification_report": classification_report(y_test, y_pred),
+        "confusion_matrix": confusion_matrix(y_test, y_pred)
     }
 
 
@@ -108,11 +100,14 @@ if __name__ == "__main__":
     resultados = []
 
     for n in procesos:
-        print(f"\nEjecutando entrenamiento con {n} proceso(s)...")
+        print(f"\nEntrenando con {n} proceso(s)...")
         resultado = ejecutar_experimento(n, X_train, X_test, y_train, y_test)
         resultados.append(resultado)
 
-    # Guardar resumen de métricas
+        print(f"Tiempo: {resultado['tiempo_total']:.2f} s")
+        print(f"Accuracy: {resultado['accuracy']:.4f}")
+        print(f"F1-score: {resultado['f1_score']:.4f}")
+
     df = pd.DataFrame([
         {
             "procesos": r["procesos"],
@@ -125,35 +120,24 @@ if __name__ == "__main__":
         for r in resultados
     ])
 
-    df.to_csv("metrics_summary.csv", index=False)
-
-    # Calcular speedup y eficiencia
     tiempo_secuencial = df[df["procesos"] == 1]["tiempo_total"].values[0]
 
     df["speedup"] = tiempo_secuencial / df["tiempo_total"]
     df["eficiencia"] = df["speedup"] / df["procesos"]
 
+    df.to_csv("metrics_summary.csv", index=False)
     df[["procesos", "speedup"]].to_csv("speedup_training.csv", index=False)
     df[["procesos", "eficiencia"]].to_csv("efficiency_training.csv", index=False)
 
-    # Guardar classification report del experimento con 1 proceso
     with open("classification_report.txt", "w", encoding="utf-8") as f:
         f.write(resultados[0]["classification_report"])
 
-    # Guardar matriz de confusión del experimento con 1 proceso
     matriz = resultados[0]["confusion_matrix"]
-
     disp = ConfusionMatrixDisplay(confusion_matrix=matriz)
     disp.plot(cmap="Blues")
-    plt.title("Matriz de confusión - SVM final")
+    plt.title("Matriz de confusión - Regresión Logística final")
     plt.savefig("confusion_matrix.png")
     plt.close()
 
     print("\nEntrenamiento final terminado.")
-    print("Archivos generados:")
-    print("metrics_summary.csv")
-    print("classification_report.txt")
-    print("confusion_matrix.png")
-    print("speedup_training.csv")
-    print("efficiency_training.csv")
-    print("time_training_*.txt")
+    print("Archivos generados correctamente.")
