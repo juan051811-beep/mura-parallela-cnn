@@ -24,8 +24,7 @@ def cargar_datos():
     )
 
 
-# Entrena un modelo de Regresión Logística sobre un chunk del dataset
-def entrenar_modelo_chunk(args):
+def entrenar_modelo_chunk(args): #entrenamos un modelo de RL sobre un chuk del dataset
     X_chunk, y_chunk = args
 
     modelo = LogisticRegression(
@@ -37,9 +36,7 @@ def entrenar_modelo_chunk(args):
     modelo.fit(X_chunk, y_chunk)
     return modelo
 
-
-# Combina las predicciones de todos los modelos por promedio de probabilidades
-def predecir_ensemble(modelos, X_test):
+def predecir_ensemble(modelos, X_test): #combinamos las predicciones de todos los  modelos por medio de probabilidades
     probabilidades = []
 
     for modelo in modelos:
@@ -49,8 +46,7 @@ def predecir_ensemble(modelos, X_test):
     return np.argmax(promedio, axis=1)
 
 
-def ejecutar_experimento(n_procesos, X_train, X_test, y_train, y_test):
-    # Siempre se usan 8 chunks para que todos los experimentos tengan el mismo trabajo
+def ejecutar_experimento(n_procesos, X_train, X_test, y_train, y_test): #carga de trabajos
     X_chunks = np.array_split(X_train, 8)
     y_chunks = np.array_split(y_train, 8)
 
