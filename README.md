@@ -22,3 +22,17 @@ Desde la raíz del proyecto:
 py src\final_training\run_final_training.py
 py src\final_training\run_final_training_lr_experimental.py
 ```
+## Resultados finales
+
+Modelo: Logistic Regression
+
+- Dataset completo: 40,005 imágenes
+- Entrenamiento: 32,004 imágenes
+- Prueba: 8,001 imágenes
+
+### Métricas
+
+- Accuracy: 75.62%
+- Precision: 74.48%
+- Recall: 61.66%
+- F1-score: 67.47%
