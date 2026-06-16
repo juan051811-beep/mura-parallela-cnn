@@ -1,0 +1,10 @@
+Tiempo total: 3610.4810 segundos
+Procesos utilizados: 4
+Paralelismo implementado con multiprocessing.Pool
+Muestra usada: 30% estratificado del dataset
+Mejor modelo: SVM
+Mejor F1-score: 0.6847
+Mejor accuracy: 0.7518
+Mejor precision: 0.7149
+Mejor recall: 0.6569
+Mejores parametros: {'C': 10, 'gamma': 'scale', 'kernel': 'rbf'}
